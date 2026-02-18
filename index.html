@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO — Generative Engine Optimization Concept Map</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#topBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #16213e;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+#topBar h1 { font-size: 15px; font-weight: 600; color: #8be9fd; white-space: nowrap; }
+#topBar .preset-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #2a2a4a;
+  border: 1px solid #3a3a5a;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#topBar .preset-btn:hover { background: #3a3a5a; color: #fff; }
+#topBar .preset-btn.active { background: #4a4a7a; border-color: #8be9fd; color: #8be9fd; }
+.sep { color: #3a3a5a; }
+#mainArea { display: flex; flex: 1; overflow: hidden; }
+#canvasWrap { flex: 1; position: relative; }
+canvas { display: block; width: 100%; height: 100%; }
+#tooltip {
+  position: absolute;
+  background: #16213e;
+  border: 1px solid #4a4a7a;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 280px;
+  pointer-events: none;
+  display: none;
+  z-index: 10;
+  line-height: 1.4;
+}
+#tooltip .tt-name { color: #8be9fd; font-weight: 600; margin-bottom: 4px; }
+#tooltip .tt-desc { color: #bbb; }
+#sidebar {
+  width: 290px;
+  background: #16213e;
+  border-left: 1px solid #2a2a4a;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 12px;
+}
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  margin: 12px 0 6px;
+}
+.section-title:first-child { margin-top: 0; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.node-list { list-style: none; }
+.node-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+.node-list li:hover { background: #2a2a4a; }
+.knowledge-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  min-width: 56px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.k-know { background: #1a3a2a; color: #50fa7b; }
+.k-fuzzy { background: #3a3a1a; color: #f1fa8c; }
+.k-unknown { background: #3a1a1a; color: #ff5555; }
+.node-vis {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.action-btn {
+  width: 100%;
+  padding: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  background: #2a2a4a;
+  border: 1px solid #3a3a5a;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.action-btn:hover { background: #3a3a5a; color: #fff; }
+#edgeMode {
+  font-size: 12px;
+  padding: 6px 8px;
+  background: #2a2a4a;
+  border: 1px solid #3a3a5a;
+  color: #ccc;
+  border-radius: 4px;
+  width: 100%;
+}
+#bottomBar {
+  background: #16213e;
+  border-top: 1px solid #2a2a4a;
+  padding: 10px 16px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-height: 180px;
+}
+#promptOutput {
+  flex: 1;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #bbb;
+  overflow-y: auto;
+  max-height: 150px;
+  white-space: pre-wrap;
+}
+#copyBtn {
+  padding: 6px 14px;
+  background: #4a4a7a;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+#copyBtn:hover { background: #5a5a8a; }
+.edge-drawing-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a4a7a;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: none;
+  z-index: 10;
+}
+</style>
+</head>
+<body>
+
+<div id="topBar">
+  <h1>GEO Concept Map</h1>
+  <span class="sep">|</span>
+  <button class="preset-btn" onclick="applyPreset('all')">All Concepts</button>
+  <button class="preset-btn" onclick="applyPreset('foundations')">Foundations</button>
+  <button class="preset-btn" onclick="applyPreset('content')">Content Strategy</button>
+  <button class="preset-btn" onclick="applyPreset('technical')">Technical GEO</button>
+  <button class="preset-btn" onclick="applyPreset('authority')">Authority & Trust</button>
+  <button class="preset-btn" onclick="applyPreset('platforms')">AI Platforms</button>
+  <button class="preset-btn" onclick="applyPreset('beginner')">Beginner Start</button>
+</div>
+
+<div id="mainArea">
+  <div id="canvasWrap">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"><div class="tt-name"></div><div class="tt-desc"></div></div>
+    <div class="edge-drawing-hint" id="edgeHint">Click a second node to connect, or press Esc to cancel</div>
+  </div>
+  <div id="sidebar">
+    <div class="section-title">Knowledge Level (click to cycle)</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#50fa7b"></div> Know</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f1fa8c"></div> Fuzzy</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff5555"></div> Unknown</div>
+    </div>
+    <div class="section-title">Concepts</div>
+    <ul class="node-list" id="nodeList"></ul>
+    <div class="section-title">Draw Connection</div>
+    <select id="edgeMode">
+      <option value="enables">enables</option>
+      <option value="feeds into">feeds into</option>
+      <option value="requires">requires</option>
+      <option value="improves">improves</option>
+      <option value="measures">measures</option>
+      <option value="part of">part of</option>
+      <option value="competes with">competes with</option>
+    </select>
+    <p style="font-size:11px;color:#666;margin-top:6px;">Hold Shift + click two nodes on the canvas to draw an edge.</p>
+    <div class="section-title">Actions</div>
+    <button class="action-btn" onclick="autoLayout()">Auto-Layout</button>
+    <button class="action-btn" onclick="clearEdges()">Clear Custom Edges</button>
+    <button class="action-btn" onclick="resetAll()">Reset All</button>
+  </div>
+</div>
+
+<div id="bottomBar">
+  <div id="promptOutput">Adjust your knowledge levels and draw connections to generate a learning prompt.</div>
+  <button id="copyBtn" onclick="copyPrompt()">Copy</button>
+</div>
+
+<script>
+const KNOW = 'know', FUZZY = 'fuzzy', UNKNOWN = 'unknown';
+const knowledgeColors = { know: '#50fa7b', fuzzy: '#f1fa8c', unknown: '#ff5555' };
+const knowledgeCycle = [FUZZY, UNKNOWN, KNOW];
+
+const categoryColors = {
+  core: '#f8f8f2',
+  content: '#ff79c6',
+  technical: '#8be9fd',
+  authority: '#bd93f9',
+  platforms: '#ffb86c',
+  measurement: '#50fa7b',
+  seo_bridge: '#f1fa8c'
+};
+
+const catNames = {
+  core: 'Core Concepts',
+  content: 'Content Strategy',
+  technical: 'Technical GEO',
+  authority: 'Authority & Trust',
+  platforms: 'AI Platforms',
+  measurement: 'Measurement',
+  seo_bridge: 'SEO Bridge'
+};
+
+// ── Node definitions ──────────────────────────────────────────────
+const initialNodes = [
+  // Core Concepts
+  { id: 'geo', label: 'GEO', cat: 'core', desc: 'Generative Engine Optimization — the practice of optimizing content so AI-powered search engines (ChatGPT, Perplexity, Google AI Overviews) cite, recommend, or mention your brand in their generated answers.' },
+  { id: 'llm', label: 'LLMs', cat: 'core', desc: 'Large Language Models — AI systems (GPT, Claude, Gemini) trained on massive text data that generate human-like responses. They are the "engines" in generative search.' },
+  { id: 'rag', label: 'RAG', cat: 'core', desc: 'Retrieval-Augmented Generation — the architecture powering AI search. First retrieves relevant content chunks from indexed sources, then feeds them to the LLM to generate a response with citations.' },
+  { id: 'citation', label: 'AI Citations', cat: 'core', desc: 'When an AI engine attributes information to your source in its generated answer. The ultimate goal of GEO — being the cited source rather than just ranking on a page.' },
+  { id: 'semantic_search', label: 'Semantic Search', cat: 'core', desc: 'Search based on meaning, not keywords. LLMs understand concepts and context, so content that clearly explains ideas beats keyword-stuffed pages.' },
+  { id: 'geo_vs_seo', label: 'GEO vs SEO', cat: 'core', desc: 'SEO optimizes for ranking in search results pages. GEO optimizes for being cited in AI-generated answers. SEO is the foundation; GEO builds on top of it.' },
+
+  // Content Strategy
+  { id: 'content_structure', label: 'Content Structure', cat: 'content', desc: 'Modular, well-organized content with clear headings, short paragraphs, and logical flow. AI engines parse structured content more easily and extract specific passages for answers.' },
+  { id: 'fact_density', label: 'Fact Density', cat: 'content', desc: 'Packing content with specific data points, statistics, percentages, and verifiable claims. LLMs prefer citing content with concrete facts over vague generalities.' },
+  { id: 'original_research', label: 'Original Research', cat: 'content', desc: 'First-party data, unique studies, surveys, or proprietary insights. LLMs heavily favor original sources over content that aggregates others\' work.' },
+  { id: 'semantic_clarity', label: 'Semantic Clarity', cat: 'content', desc: 'Writing that clearly explains concepts using consistent terminology. RAG systems match on meaning, so clear explanations win over keyword repetition.' },
+  { id: 'content_formats', label: 'LLM-Ready Formats', cat: 'content', desc: 'Content types AI engines easily extract: FAQs, comparison tables, step-by-step guides, listicles, checklists, and definition-style paragraphs.' },
+  { id: 'topical_authority', label: 'Topical Authority', cat: 'content', desc: 'Deep, comprehensive coverage of a subject across multiple interlinked pages. LLMs recognize domain expertise from breadth and depth of content on a topic.' },
+  { id: 'freshness', label: 'Content Freshness', cat: 'content', desc: 'Keeping content updated with current data and dates. Some AI platforms (especially Perplexity) strongly favor content published within the last 90 days.' },
+  { id: 'prompt_alignment', label: 'Query Alignment', cat: 'content', desc: 'Structuring content to directly answer the types of questions users ask AI assistants. Think conversational queries, not just keyword phrases.' },
+
+  // Technical GEO
+  { id: 'schema_markup', label: 'Schema Markup', cat: 'technical', desc: 'JSON-LD structured data that explicitly tells AI crawlers what your content is about — entities, relationships, authors, dates. Content with schema shows 30-40% higher AI visibility.' },
+  { id: 'html5_semantics', label: 'HTML5 Semantics', cat: 'technical', desc: 'Using proper HTML5 elements (article, section, nav, aside, figure) instead of generic divs. Gives AI crawlers a predictable, parseable interface to your content.' },
+  { id: 'ai_crawlers', label: 'AI Crawlers', cat: 'technical', desc: 'Bots from AI companies (GPTBot, ClaudeBot, PerplexityBot) that index your content for their AI models. You can allow/block them via robots.txt.' },
+  { id: 'robots_txt', label: 'robots.txt & AI', cat: 'technical', desc: 'Configuring which AI crawlers can access your site. Blocking all AI bots means zero GEO visibility. Strategic access control is key.' },
+  { id: 'page_speed', label: 'Page Performance', cat: 'technical', desc: 'Core Web Vitals (LCP, CLS, TTFB) affect AI crawling. AI bots often abandon slow-loading pages, reducing your crawl footprint and AI visibility.' },
+  { id: 'extractability', label: 'Extractability', cat: 'technical', desc: 'How easily AI systems can pull specific passages from your content. Clean HTML, clear sections, and explicit claims make your content more extractable.' },
+  { id: 'knowledge_graph', label: 'Knowledge Graph', cat: 'technical', desc: 'Entity-based data structures that map relationships between concepts. Google\'s Knowledge Graph and similar systems feed AI understanding of your brand and content.' },
+
+  // Authority & Trust
+  { id: 'eeat', label: 'E-E-A-T', cat: 'authority', desc: 'Experience, Expertise, Authoritativeness, Trustworthiness — Google\'s quality framework now used by AI engines. Show credentials, cite data, link to reputable sources.' },
+  { id: 'digital_pr', label: 'Digital PR', cat: 'authority', desc: 'Earning mentions and citations from reputable third-party sources (news, industry sites). LLMs heavily weigh third-party validation when choosing which sources to cite.' },
+  { id: 'brand_mentions', label: 'Brand Mentions', cat: 'authority', desc: 'Unlinked mentions of your brand across the web. LLMs learn brand authority from how often and in what context a brand is discussed, not just from backlinks.' },
+  { id: 'author_entities', label: 'Author Entities', cat: 'authority', desc: 'Named, credentialed authors with established web presence. LLMs associate expertise with known individuals, not anonymous content.' },
+  { id: 'source_diversity', label: 'Source Diversity', cat: 'authority', desc: 'Being mentioned across varied, independent sources (not just your own site). LLMs cross-reference multiple sources to validate claims before citing.' },
+  { id: 'trust_signals', label: 'Trust Signals', cat: 'authority', desc: 'External citations, data sources, methodology transparency, and factual accuracy. AI engines prioritize trustworthy, verifiable content.' },
+
+  // AI Platforms
+  { id: 'google_aio', label: 'Google AI Overviews', cat: 'platforms', desc: 'Google\'s AI-generated summaries at the top of search results (formerly SGE). Pulls from indexed web content and shows source cards with attribution.' },
+  { id: 'chatgpt_search', label: 'ChatGPT Search', cat: 'platforms', desc: 'ChatGPT\'s web browsing feature that retrieves and cites sources in real-time. Favors traditional authority sites, Wikipedia, and community-validated content like Reddit.' },
+  { id: 'perplexity', label: 'Perplexity AI', cat: 'platforms', desc: 'AI-native search engine with numbered footnote citations. Strongly favors recent content (last 90 days) and community-validated sources. Reddit is ~47% of its top sources.' },
+  { id: 'claude_search', label: 'Claude Search', cat: 'platforms', desc: 'Anthropic\'s Claude with web search capabilities. Focuses on factual accuracy and detailed source attribution.' },
+  { id: 'bing_copilot', label: 'Bing Copilot', cat: 'platforms', desc: 'Microsoft\'s AI-powered search using GPT models integrated with Bing index. Inline citations and conversational follow-ups.' },
+
+  // Measurement & Analytics
+  { id: 'ai_visibility', label: 'AI Visibility', cat: 'measurement', desc: 'Tracking how often your brand/content appears in AI-generated answers. New tools (Otterly, Peec AI) monitor mentions across ChatGPT, Perplexity, and Google AIO.' },
+  { id: 'citation_share', label: 'Citation Share', cat: 'measurement', desc: 'Your percentage of AI citations vs. competitors for target topics. The GEO equivalent of "market share" — early movers are capturing this while competition is low.' },
+  { id: 'llm_referral_traffic', label: 'LLM Referral Traffic', cat: 'measurement', desc: 'Website visits from AI platforms. Jumped 527% in early 2025. Track via analytics by filtering referral sources from AI domains.' },
+  { id: 'impression_tracking', label: 'AI Impression Tracking', cat: 'measurement', desc: 'Monitoring when and how AI engines mention your content, even without click-throughs. Captures brand exposure that traditional analytics miss.' },
+
+  // SEO Bridge
+  { id: 'traditional_seo', label: 'Traditional SEO', cat: 'seo_bridge', desc: 'Search Engine Optimization for Google/Bing rankings. Still the foundation — structured, authoritative content ranks well AND gets cited by AI. GEO doesn\'t replace SEO; it extends it.' },
+  { id: 'backlinks', label: 'Backlinks', cat: 'seo_bridge', desc: 'Links from other sites to yours. Still matter for SEO authority, and indirectly for GEO — pages with strong link profiles are more likely to be in AI training data and retrieval indexes.' },
+  { id: 'keyword_research', label: 'Query Research', cat: 'seo_bridge', desc: 'Evolving from keyword research to understanding conversational AI queries. People ask AI assistants full questions, not 2-3 keyword phrases.' },
+];
+
+// ── Pre-drawn edges ───────────────────────────────────────────────
+const initialEdges = [
+  // Core relationships
+  { from: 'geo', to: 'llm', label: 'optimizes for' },
+  { from: 'geo', to: 'citation', label: 'aims for' },
+  { from: 'geo', to: 'geo_vs_seo', label: 'part of' },
+  { from: 'llm', to: 'rag', label: 'uses' },
+  { from: 'rag', to: 'semantic_search', label: 'uses' },
+  { from: 'rag', to: 'citation', label: 'produces' },
+  { from: 'semantic_search', to: 'semantic_clarity', label: 'requires' },
+
+  // Content strategy flows
+  { from: 'geo', to: 'content_structure', label: 'requires' },
+  { from: 'content_structure', to: 'extractability', label: 'enables' },
+  { from: 'fact_density', to: 'citation', label: 'improves' },
+  { from: 'original_research', to: 'citation', label: 'improves' },
+  { from: 'original_research', to: 'topical_authority', label: 'builds' },
+  { from: 'semantic_clarity', to: 'rag', label: 'feeds into' },
+  { from: 'content_formats', to: 'extractability', label: 'enables' },
+  { from: 'topical_authority', to: 'eeat', label: 'builds' },
+  { from: 'freshness', to: 'perplexity', label: 'required by' },
+  { from: 'prompt_alignment', to: 'semantic_search', label: 'aligns with' },
+  { from: 'keyword_research', to: 'prompt_alignment', label: 'evolves into' },
+
+  // Technical flows
+  { from: 'schema_markup', to: 'ai_crawlers', label: 'feeds' },
+  { from: 'schema_markup', to: 'knowledge_graph', label: 'builds' },
+  { from: 'html5_semantics', to: 'extractability', label: 'enables' },
+  { from: 'ai_crawlers', to: 'robots_txt', label: 'controlled by' },
+  { from: 'ai_crawlers', to: 'rag', label: 'feeds into' },
+  { from: 'page_speed', to: 'ai_crawlers', label: 'affects' },
+  { from: 'knowledge_graph', to: 'llm', label: 'feeds' },
+  { from: 'extractability', to: 'citation', label: 'enables' },
+
+  // Authority flows
+  { from: 'eeat', to: 'citation', label: 'improves' },
+  { from: 'digital_pr', to: 'brand_mentions', label: 'generates' },
+  { from: 'digital_pr', to: 'source_diversity', label: 'builds' },
+  { from: 'brand_mentions', to: 'llm', label: 'trains' },
+  { from: 'author_entities', to: 'eeat', label: 'builds' },
+  { from: 'trust_signals', to: 'eeat', label: 'builds' },
+  { from: 'source_diversity', to: 'citation', label: 'improves' },
+  { from: 'backlinks', to: 'eeat', label: 'supports' },
+
+  // Platform connections
+  { from: 'rag', to: 'google_aio', label: 'powers' },
+  { from: 'rag', to: 'chatgpt_search', label: 'powers' },
+  { from: 'rag', to: 'perplexity', label: 'powers' },
+  { from: 'rag', to: 'claude_search', label: 'powers' },
+  { from: 'rag', to: 'bing_copilot', label: 'powers' },
+
+  // Measurement
+  { from: 'citation', to: 'citation_share', label: 'measured by' },
+  { from: 'citation', to: 'ai_visibility', label: 'tracked by' },
+  { from: 'ai_visibility', to: 'llm_referral_traffic', label: 'drives' },
+  { from: 'ai_visibility', to: 'impression_tracking', label: 'part of' },
+
+  // SEO bridge
+  { from: 'traditional_seo', to: 'geo', label: 'foundation of' },
+  { from: 'traditional_seo', to: 'backlinks', label: 'uses' },
+  { from: 'traditional_seo', to: 'keyword_research', label: 'uses' },
+  { from: 'geo_vs_seo', to: 'traditional_seo', label: 'extends' },
+];
+
+// ── State ─────────────────────────────────────────────────────────
+let nodes = [];
+let edges = [];
+let customEdges = [];
+let dragging = null;
+let dragOffset = { x: 0, y: 0 };
+let hoveredNode = null;
+let edgeStart = null;
+let shiftHeld = false;
+let mousePos = null;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const edgeHint = document.getElementById('edgeHint');
+const nodeListEl = document.getElementById('nodeList');
+const promptOutput = document.getElementById('promptOutput');
+
+function init() {
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+  nodes = initialNodes.map(n => ({
+    ...n,
+    x: W * 0.1 + Math.random() * W * 0.8,
+    y: H * 0.1 + Math.random() * H * 0.8,
+    knowledge: FUZZY,
+    visible: true,
+    radius: n.cat === 'core' ? 28 : 22
+  }));
+
+  edges = initialEdges.map(e => ({ ...e, custom: false }));
+  customEdges = [];
+
+  autoLayout();
+  buildNodeList();
+  updateAll();
+}
+
+function nodeById(id) { return nodes.find(n => n.id === id); }
+
+function autoLayout() {
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  const visible = nodes.filter(n => n.visible);
+
+  visible.forEach(n => {
+    if (!n.x) n.x = W / 2 + (Math.random() - 0.5) * 200;
+    if (!n.y) n.y = H / 2 + (Math.random() - 0.5) * 200;
+  });
+
+  for (let iter = 0; iter < 250; iter++) {
+    const damping = 0.94;
+    visible.forEach(n => { n.vx = (n.vx || 0) * damping; n.vy = (n.vy || 0) * damping; });
+
+    // Repulsion
+    for (let i = 0; i < visible.length; i++) {
+      for (let j = i + 1; j < visible.length; j++) {
+        const a = visible[i], b = visible[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        let force = 10000 / (dist * dist);
+        let fx = (dx / dist) * force, fy = (dy / dist) * force;
+        a.vx -= fx; a.vy -= fy;
+        b.vx += fx; b.vy += fy;
+      }
+    }
+
+    // Attraction along edges
+    const allEdges = [...edges, ...customEdges];
+    allEdges.forEach(e => {
+      const a = nodeById(e.from), b = nodeById(e.to);
+      if (!a || !b || !a.visible || !b.visible) return;
+      let dx = b.x - a.x, dy = b.y - a.y;
+      let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      let force = (dist - 130) * 0.035;
+      let fx = (dx / dist) * force, fy = (dy / dist) * force;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    });
+
+    // Center gravity
+    visible.forEach(n => {
+      n.vx += (W / 2 - n.x) * 0.001;
+      n.vy += (H / 2 - n.y) * 0.001;
+    });
+
+    visible.forEach(n => {
+      n.x += n.vx;
+      n.y += n.vy;
+      n.x = Math.max(40, Math.min(W - 40, n.x));
+      n.y = Math.max(40, Math.min(H - 40, n.y));
+    });
+  }
+
+  draw();
+}
+
+function draw() {
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  ctx.clearRect(0, 0, W, H);
+
+  const allEdges = [...edges, ...customEdges];
+  allEdges.forEach(e => {
+    const a = nodeById(e.from), b = nodeById(e.to);
+    if (!a || !b || !a.visible || !b.visible) return;
+    drawEdge(a, b, e.label, e.custom);
+  });
+
+  if (edgeStart && shiftHeld) {
+    const n = nodeById(edgeStart);
+    if (n && mousePos) {
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y);
+      ctx.lineTo(mousePos.x, mousePos.y);
+      ctx.strokeStyle = 'rgba(139,233,253,0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  nodes.filter(n => n.visible).forEach(n => drawNode(n));
+}
+
+function drawEdge(a, b, label, isCustom) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ux = dx / dist, uy = dy / dist;
+
+  const startX = a.x + ux * a.radius;
+  const startY = a.y + uy * a.radius;
+  const endX = b.x - ux * b.radius;
+  const endY = b.y - uy * b.radius;
+
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(endX, endY);
+  ctx.strokeStyle = isCustom ? 'rgba(139,233,253,0.6)' : 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = isCustom ? 2 : 1;
+  ctx.stroke();
+
+  const arrowLen = 8;
+  const angle = Math.atan2(endY - startY, endX - startX);
+  ctx.beginPath();
+  ctx.moveTo(endX, endY);
+  ctx.lineTo(endX - arrowLen * Math.cos(angle - 0.4), endY - arrowLen * Math.sin(angle - 0.4));
+  ctx.lineTo(endX - arrowLen * Math.cos(angle + 0.4), endY - arrowLen * Math.sin(angle + 0.4));
+  ctx.closePath();
+  ctx.fillStyle = isCustom ? 'rgba(139,233,253,0.6)' : 'rgba(255,255,255,0.2)';
+  ctx.fill();
+
+  if (label) {
+    const mx = (startX + endX) / 2, my = (startY + endY) / 2;
+    ctx.font = '9px -apple-system, system-ui, sans-serif';
+    ctx.fillStyle = isCustom ? 'rgba(139,233,253,0.7)' : 'rgba(255,255,255,0.3)';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, mx, my - 4);
+  }
+}
+
+function drawNode(n) {
+  const isHovered = hoveredNode === n.id;
+  const r = n.radius + (isHovered ? 3 : 0);
+
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, r + 4, 0, Math.PI * 2);
+  ctx.fillStyle = knowledgeColors[n.knowledge] + '15';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fill();
+  ctx.strokeStyle = categoryColors[n.cat];
+  ctx.lineWidth = isHovered ? 3 : 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, r - 3, 0, Math.PI * 2);
+  ctx.strokeStyle = knowledgeColors[n.knowledge] + '60';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.font = `${isHovered ? '11' : '10'}px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = '#f8f8f2';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const words = n.label.split(' ');
+  if (words.length > 1 && n.label.length > 8) {
+    const mid = Math.ceil(words.length / 2);
+    ctx.fillText(words.slice(0, mid).join(' '), n.x, n.y - 6);
+    ctx.fillText(words.slice(mid).join(' '), n.x, n.y + 6);
+  } else {
+    ctx.fillText(n.label, n.x, n.y);
+  }
+}
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function hitTest(pos) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (!n.visible) continue;
+    const dx = pos.x - n.x, dy = pos.y - n.y;
+    if (dx * dx + dy * dy < (n.radius + 4) * (n.radius + 4)) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  const pos = getMousePos(e);
+  const hit = hitTest(pos);
+  if (!hit) return;
+
+  if (shiftHeld) {
+    if (!edgeStart) {
+      edgeStart = hit.id;
+      edgeHint.style.display = 'block';
+    } else if (edgeStart !== hit.id) {
+      const label = document.getElementById('edgeMode').value;
+      customEdges.push({ from: edgeStart, to: hit.id, label, custom: true });
+      edgeStart = null;
+      edgeHint.style.display = 'none';
+      updateAll();
+    }
+    return;
+  }
+
+  dragging = hit;
+  dragOffset = { x: pos.x - hit.x, y: pos.y - hit.y };
+});
+
+canvas.addEventListener('mousemove', e => {
+  const pos = getMousePos(e);
+  mousePos = pos;
+
+  if (dragging) {
+    dragging.x = pos.x - dragOffset.x;
+    dragging.y = pos.y - dragOffset.y;
+    draw();
+    return;
+  }
+
+  const hit = hitTest(pos);
+  const prev = hoveredNode;
+  hoveredNode = hit ? hit.id : null;
+
+  if (hit) {
+    tooltip.style.display = 'block';
+    const tx = Math.min(pos.x + 16, canvas.parentElement.clientWidth - 300);
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = (pos.y - 10) + 'px';
+    tooltip.querySelector('.tt-name').textContent = hit.label;
+    tooltip.querySelector('.tt-desc').textContent = hit.desc;
+  } else {
+    tooltip.style.display = 'none';
+  }
+
+  if (prev !== hoveredNode) draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragging = null; });
+canvas.addEventListener('mouseleave', () => {
+  dragging = null;
+  hoveredNode = null;
+  tooltip.style.display = 'none';
+  draw();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Shift') shiftHeld = true;
+  if (e.key === 'Escape' && edgeStart) {
+    edgeStart = null;
+    edgeHint.style.display = 'none';
+    draw();
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'Shift') shiftHeld = false;
+});
+
+function buildNodeList() {
+  nodeListEl.innerHTML = '';
+  const cats = ['core', 'content', 'technical', 'authority', 'platforms', 'measurement', 'seo_bridge'];
+
+  cats.forEach(cat => {
+    const catNodes = nodes.filter(n => n.cat === cat);
+    if (catNodes.length === 0) return;
+
+    const header = document.createElement('li');
+    header.style.cssText = 'font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;padding:6px 6px 2px;cursor:default;';
+    header.textContent = catNames[cat];
+    nodeListEl.appendChild(header);
+
+    catNodes.forEach(n => {
+      const li = document.createElement('li');
+      li.onclick = () => cycleKnowledge(n.id);
+
+      const dot = document.createElement('div');
+      dot.className = 'node-vis';
+      dot.style.background = categoryColors[n.cat];
+
+      const name = document.createElement('span');
+      name.style.flex = '1';
+      name.textContent = n.label;
+
+      const badge = document.createElement('span');
+      badge.className = 'knowledge-badge k-' + n.knowledge;
+      badge.textContent = n.knowledge;
+      badge.id = 'badge-' + n.id;
+
+      li.appendChild(dot);
+      li.appendChild(name);
+      li.appendChild(badge);
+      nodeListEl.appendChild(li);
+    });
+  });
+}
+
+function cycleKnowledge(id) {
+  const n = nodeById(id);
+  const idx = knowledgeCycle.indexOf(n.knowledge);
+  n.knowledge = knowledgeCycle[(idx + 1) % knowledgeCycle.length];
+
+  const badge = document.getElementById('badge-' + id);
+  badge.className = 'knowledge-badge k-' + n.knowledge;
+  badge.textContent = n.knowledge;
+
+  updateAll();
+}
+
+function updateAll() {
+  draw();
+  updatePrompt();
+}
+
+function updatePrompt() {
+  const knowNodes = nodes.filter(n => n.visible && n.knowledge === KNOW);
+  const fuzzyNodes = nodes.filter(n => n.visible && n.knowledge === FUZZY);
+  const unknownNodes = nodes.filter(n => n.visible && n.knowledge === UNKNOWN);
+
+  if (fuzzyNodes.length === 0 && unknownNodes.length === 0) {
+    promptOutput.textContent = 'You\'ve marked everything as "Know" — you\'re a GEO expert! Mark some concepts as "Fuzzy" or "Unknown" to generate a learning prompt.';
+    return;
+  }
+
+  const allEdges = [...edges, ...customEdges];
+  const relevantEdges = allEdges.filter(e => {
+    const a = nodeById(e.from), b = nodeById(e.to);
+    if (!a || !b || !a.visible || !b.visible) return false;
+    return (a.knowledge !== KNOW || b.knowledge !== KNOW);
+  });
+
+  let parts = ['I\'m learning about Generative Engine Optimization (GEO) — how to optimize content so AI search engines like ChatGPT, Perplexity, and Google AI Overviews cite my content in their generated answers.'];
+
+  if (knowNodes.length > 0) {
+    parts.push(`\nI already understand: ${knowNodes.map(n => n.label).join(', ')}.`);
+  }
+
+  if (fuzzyNodes.length > 0) {
+    parts.push(`\nI\'m fuzzy on: ${fuzzyNodes.map(n => n.label).join(', ')}.`);
+  }
+
+  if (unknownNodes.length > 0) {
+    parts.push(`\nI have no idea about: ${unknownNodes.map(n => n.label).join(', ')}.`);
+  }
+
+  if (relevantEdges.length > 0) {
+    const edgeDescs = relevantEdges.slice(0, 18).map(e => {
+      const a = nodeById(e.from), b = nodeById(e.to);
+      return `${a.label} ${e.label} ${b.label}`;
+    });
+    parts.push(`\nRelationships I want to understand:\n- ${edgeDescs.join('\n- ')}`);
+  }
+
+  parts.push('\nPlease explain the fuzzy and unknown concepts, focusing on the relationships listed above. Build on what I already know. Use concrete, actionable examples — show me what good GEO looks like in practice.');
+
+  promptOutput.textContent = parts.join('');
+}
+
+function clearEdges() {
+  customEdges = [];
+  updateAll();
+}
+
+function resetAll() {
+  nodes.forEach(n => { n.knowledge = FUZZY; n.visible = true; });
+  customEdges = [];
+  buildNodeList();
+  autoLayout();
+  updateAll();
+}
+
+function applyPreset(preset) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const coreIds = ['geo', 'llm', 'rag', 'citation', 'semantic_search', 'geo_vs_seo'];
+  const contentIds = ['content_structure', 'fact_density', 'original_research', 'semantic_clarity', 'content_formats', 'topical_authority', 'freshness', 'prompt_alignment'];
+  const techIds = ['schema_markup', 'html5_semantics', 'ai_crawlers', 'robots_txt', 'page_speed', 'extractability', 'knowledge_graph'];
+  const authIds = ['eeat', 'digital_pr', 'brand_mentions', 'author_entities', 'source_diversity', 'trust_signals'];
+  const platIds = ['google_aio', 'chatgpt_search', 'perplexity', 'claude_search', 'bing_copilot'];
+  const measIds = ['ai_visibility', 'citation_share', 'llm_referral_traffic', 'impression_tracking'];
+  const seoIds = ['traditional_seo', 'backlinks', 'keyword_research'];
+
+  if (preset === 'all') {
+    nodes.forEach(n => { n.visible = true; n.knowledge = FUZZY; });
+  } else if (preset === 'foundations') {
+    const show = new Set([...coreIds, ...seoIds]);
+    nodes.forEach(n => { n.visible = show.has(n.id); n.knowledge = FUZZY; });
+  } else if (preset === 'content') {
+    const show = new Set([...coreIds.slice(0, 4), ...contentIds]);
+    nodes.forEach(n => { n.visible = show.has(n.id); n.knowledge = FUZZY; });
+  } else if (preset === 'technical') {
+    const show = new Set(['geo', 'rag', 'citation', 'ai_crawlers', ...techIds]);
+    nodes.forEach(n => { n.visible = show.has(n.id); n.knowledge = FUZZY; });
+  } else if (preset === 'authority') {
+    const show = new Set(['geo', 'citation', 'eeat', ...authIds, ...seoIds]);
+    nodes.forEach(n => { n.visible = show.has(n.id); n.knowledge = FUZZY; });
+  } else if (preset === 'platforms') {
+    const show = new Set(['geo', 'llm', 'rag', 'citation', ...platIds, ...measIds]);
+    nodes.forEach(n => { n.visible = show.has(n.id); n.knowledge = FUZZY; });
+  } else if (preset === 'beginner') {
+    nodes.forEach(n => { n.visible = true; });
+    const knowIds = ['traditional_seo', 'backlinks', 'keyword_research'];
+    const unknownIds = ['rag', 'semantic_search', 'schema_markup', 'ai_crawlers', 'extractability', 'knowledge_graph', 'citation_share', 'llm_referral_traffic', 'impression_tracking', 'robots_txt', 'author_entities', 'source_diversity'];
+    nodes.forEach(n => {
+      if (knowIds.includes(n.id)) n.knowledge = KNOW;
+      else if (unknownIds.includes(n.id)) n.knowledge = UNKNOWN;
+      else n.knowledge = FUZZY;
+    });
+  }
+
+  buildNodeList();
+  autoLayout();
+  updateAll();
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(promptOutput.textContent).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+window.addEventListener('resize', () => {
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  draw();
+});
+
+init();
+</script>
+</body>
+</html>
